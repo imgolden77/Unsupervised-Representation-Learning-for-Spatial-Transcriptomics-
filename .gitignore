@@ -1,0 +1,29 @@
+# Checkpoint & model files
+*.ckpt
+*.pt
+*.pth
+*.h5
+*.h5ad
+
+# Data folders
+data/
+datasets/
+logs/
+outputs/
+ckpt/
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Virtual environments
+env/
+venv/
+.venv/
