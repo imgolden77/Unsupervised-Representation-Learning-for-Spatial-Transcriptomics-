@@ -13,7 +13,7 @@ from typing import List
 import torch.nn.functional as F
 from scipy.sparse import csr_matrix
 
-SPATIAL_PLATFORM_LIST = ['cosmx', 'merfish']
+SPATIAL_PLATFORM_LIST = ['cosmx', 'merfish', 'visium']
 
 
 def sparse_scipy_to_tensor(x: scipy.sparse.csr_matrix):

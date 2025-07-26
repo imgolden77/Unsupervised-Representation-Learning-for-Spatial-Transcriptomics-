@@ -1,3 +1,4 @@
+import wandb
 import torch
 import torch.nn as nn
 import numpy as np
@@ -24,6 +25,7 @@ ImputationDefaultModelConfig = {
 }
 
 ImputationDefaultPipelineConfig = {
+    'es': 20,
     'lr': 5e-4,
     'wd': 1e-6,
     'scheduler': 'plat',
@@ -31,6 +33,16 @@ ImputationDefaultPipelineConfig = {
     'max_eval_batch_size': 100000,
     'patience': 5,
     'workers': 0,
+}
+
+ImputationWandbConfig = {
+    "mode":"offline",  # 인터넷 없이 로깅
+    "entity": "juha95-university-of-manchester",  # 엔티티(팀) 이름
+    "project": "imputation",  # 프로젝트 이름
+    "config": {  # 하이퍼파라미터 정보
+        **ImputationDefaultModelConfig,
+        **ImputationDefaultPipelineConfig
+    },
 }
 
 def inference(model, dataloader, split, device, batch_size, order_required=False):
@@ -86,6 +98,7 @@ class ImputationPipeline(Pipeline):
 
     def fit(self, adata: ad.AnnData,
             train_config: dict = None,
+            wandb_config: dict = None,
             split_field: str = None,
             train_split: str = 'train',
             valid_split: str = 'valid',
@@ -113,6 +126,9 @@ class ImputationPipeline(Pipeline):
             scheduler = ReduceLROnPlateau(optim, 'min', patience=config['patience'], factor=0.9)
         else:
             scheduler = None
+
+        if wandb_config is not None:  # W&B 설정이 제공된 경우
+            run = wandb.init(**wandb_config)  # 실험 시작
 
         train_loss = []
         valid_loss = []
@@ -155,10 +171,19 @@ class ImputationPipeline(Pipeline):
                 best_dict = deepcopy(self.model.state_dict())
                 # final_epoch = epoch
 
-            # if min(valid_loss) != min(valid_loss[-config['es']:]):
-            #     print(f'Early stopped. Best validation performance achieved at epoch {final_epoch}.')
-            #     break
+            if min(valid_loss) != min(valid_loss[-config['es']:]):
+                print(f'Early stopped. Best validation performance achieved at epoch {final_epoch}.')
+                break
 
+            if wandb_config is not None:  # W&B 사용 시 로그 기록
+                run.log({
+                    # "epoch": epoch,
+                    "train_loss": train_loss[-1],
+                    "valid_loss": valid_loss[-1],
+                })
+        if wandb_config is not None:
+            run.finish()  # 실험 종료 후 마무리
+            
         assert best_dict, 'Best state dict was not stored. Please report this issue on Github.'
         self.model.load_state_dict(best_dict)
         self.fitted = True
@@ -207,7 +232,16 @@ class ImputationPipeline(Pipeline):
         dataloader = DataLoader(dataset, batch_size=None, shuffle=False, num_workers=0)
         pred = inference(self.model, dataloader, None, device,
                          config['max_eval_batch_size'], order_required=True)['pred']
+        
         if 'target_genes' in evaluation_config:
+            #debug
+            print(f"target_genes 수: {len(evaluation_config['target_genes'])}")
+            print(f"adata.var.index 수: {len(adata.var.index)}")
+            # 누락된 유전자 확인
+            missing_genes = [g for g in evaluation_config['target_genes'] if g not in adata.var.index]
+            print(f"누락된 유전자 수: {len(missing_genes)}")
+            print("유전자:", missing_genes)
+            
             target_mask = torch.tensor(
                 [adata.var.index.get_loc(g) for g in evaluation_config['target_genes']]).long().to(pred.device)
             pred = pred[:, target_mask]

@@ -168,4 +168,4 @@ class NBMLPDecoder(nn.Module):
             else:
                 x = layer(x)
         mean, disp = self.out_layer(x)
-        return {'mean': mean, 'disp': disp, 'recon': mean, 'latent': x_dict['h']}
+        return {'mean': mean, 'disp': disp, 'recon': mean, 'latent': x_dict['h'], 'pred': x_dict['h']}

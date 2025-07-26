@@ -131,12 +131,21 @@ class NBReconstructionLoss(nn.Module):
         truth = y[:, x_dict['gene_mask']]
         mean = out_dict['mean'][:, x_dict['gene_mask']]
         disp = out_dict['disp'][:, x_dict['gene_mask']]
-        masked_nodes = x_dict['input_mask'].sum(1)>0
+        # masked_nodes = x_dict['input_mask'].sum(1)>0
+        
+        input_mask = x_dict['input_mask']#
+        if 'gene_mask' in x_dict:#
+            input_mask = input_mask[:, x_dict['gene_mask']]#
+        masked_nodes = input_mask.sum(1) > 0#
 
         if self.dae and self.training:
-            truth_masked = (truth * x_dict['input_mask'])[masked_nodes] #/ (x_dict['input_mask'][masked_nodes].mean())
-            mean_masked = (out_dict['mean'] * x_dict['input_mask'])[masked_nodes]
-            disp_masked = (out_dict['disp'] * x_dict['input_mask'])[masked_nodes]
+            # truth_masked = (truth * x_dict['input_mask'])[masked_nodes] #/ (x_dict['input_mask'][masked_nodes].mean())
+            # mean_masked = (out_dict['mean'] * x_dict['input_mask'])[masked_nodes]
+            # disp_masked = (out_dict['disp'] * x_dict['input_mask'])[masked_nodes]
+            truth_masked = (truth * input_mask)[masked_nodes]#
+            mean_masked = (mean * input_mask)[masked_nodes]#
+            disp_masked = (disp * input_mask)[masked_nodes]#
+            
             mean_masked = mean_masked / mean_masked.sum(1, keepdim=True) * truth_masked.sum(1, keepdim=True)
             t1 = torch.lgamma(disp_masked + eps) + torch.lgamma(truth_masked + 1.0) - torch.lgamma(truth_masked + disp_masked + eps)
             t2 = (disp_masked + truth_masked) * torch.log(1.0 + (mean_masked / (disp_masked + eps))) + (

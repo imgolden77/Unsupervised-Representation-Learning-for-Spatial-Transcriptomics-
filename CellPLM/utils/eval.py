@@ -131,14 +131,22 @@ def imputation_eval(pred_labels, true_labels, dim=1):
         true_vec = true_labels[i] if dim == 0 else true_labels[:, i]
         pred_vec = F.relu(pred_labels[i]) if dim == 0 else F.relu(pred_labels[:, i])
         (nz_idx,) = torch.nonzero(true_vec, as_tuple=True)
-        true_nz = true_vec#[nz_idx]
-        pred_nz = pred_vec#[nz_idx]
-        mse.append(F.mse_loss(pred_nz, true_nz).item())
+        true_nz = true_vec[nz_idx]
+        pred_nz = pred_vec[nz_idx]
+
+        mse.append(F.mse_loss(pred_vec, true_vec).item())
         rmse.append(np.sqrt(mse))
         # rmsle.append(np.sqrt(F.mse_loss(torch.log(pred_nz + 1), torch.log(true_nz + 1)).item()))
-        mae.append(F.l1_loss(pred_nz, true_nz).item())
-        corr.append(PearsonCorr1d(pred_nz, true_nz).item())
-        cos.append(F.cosine_similarity(pred_nz, true_nz, dim=0).item())
+        mae.append(F.l1_loss(pred_vec, true_vec).item())
+        cos.append(F.cosine_similarity(pred_vec, true_vec, dim=0).item())
+
+        # nonzero 기준 (safe corr only)
+        if len(true_nz) > 1 and true_nz.std() > 1e-6 and pred_nz.std() > 1e-6:
+            corr.append(PearsonCorr1d(pred_nz, true_nz).item())
+        else:
+            print("All-zero true_vec: correlation skipped. Only non-zero genes are included in the result.")
+            continue  # 또는 pass
+            
     rmse = np.concatenate(rmse)
     return {
         'mse': sum(mse) / len(mse),

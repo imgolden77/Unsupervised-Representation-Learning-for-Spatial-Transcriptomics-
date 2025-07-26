@@ -19,7 +19,8 @@ def load_pretrain(
         config = json.load(openfile)
     config.update(overwrite_config)
     model = OmicsFormer(**config)
-    pretrained_model_dict = torch.load(ckpt_path)['model_state_dict']
+    # pretrained_model_dict = torch.load(ckpt_path)['model_state_dict']
+    pretrained_model_dict = torch.load(ckpt_path, map_location=torch.device('cpu'))['model_state_dict']
     model_dict = model.state_dict()
     pretrained_dict = {
         k: v

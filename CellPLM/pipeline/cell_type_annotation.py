@@ -1,3 +1,4 @@
+import wandb
 import torch
 import torch.nn as nn
 import numpy as np
@@ -17,7 +18,7 @@ from . import Pipeline, load_pretrain
 CellTypeAnnotationDefaultModelConfig = {
     'drop_node_rate': 0.3,
     'dec_layers': 1,
-    'model_dropout': 0.5,
+    'model_dropout': 0.2,
     'mask_node_rate': 0.75,
     'mask_feature_rate': 0.25,
     'dec_mod': 'mlp',
@@ -28,15 +29,26 @@ CellTypeAnnotationDefaultModelConfig = {
 
 CellTypeAnnotationDefaultPipelineConfig = {
     'es': 200,
-    'lr': 5e-3,
+    'lr': 2e-3,
     'wd': 1e-7,
     'scheduler': 'plat',
-    'epochs': 2000,
+    'epochs': 100,
     'max_eval_batch_size': 100000,
     'hvg': 3000,
     'patience': 25,
     'workers': 0,
 }
+
+CellTypeAnnotationWandbConfig = {
+    "mode":"offline",  # 인터넷 없이 로깅
+    "entity": "juha95-university-of-manchester",  # 엔티티(팀) 이름
+    "project": "test",  # 프로젝트 이름
+    "config": {  # 하이퍼파라미터 정보
+        **CellTypeAnnotationDefaultModelConfig,
+        **CellTypeAnnotationDefaultPipelineConfig
+        },
+}
+
 def inference(model, dataloader, split, device, batch_size, eval_dict, label_fields=None, order_required=False):
     if order_required and split:
         warnings.warn('When cell order required to be preserved, dataset split will be ignored.')
@@ -106,6 +118,7 @@ class CellTypeAnnotationPipeline(Pipeline):
 
     def fit(self, adata: ad.AnnData,
             train_config: dict = None,
+            wandb_config: dict = None,
             split_field: str = None,
             train_split: str = 'train',
             valid_split: str = 'valid',
@@ -141,6 +154,9 @@ class CellTypeAnnotationPipeline(Pipeline):
             scheduler = ReduceLROnPlateau(optim, 'min', patience=config['patience'], factor=0.95)
         else:
             scheduler = None
+
+        if wandb_config is not None:  # W&B 설정이 제공된 경우
+            run = wandb.init(**wandb_config)  # 실험 시작
 
         train_loss = []
         valid_loss = []
@@ -200,6 +216,20 @@ class CellTypeAnnotationPipeline(Pipeline):
             if max(valid_metric) != max(valid_metric[-config['es']:]):
                 print(f'Early stopped. Best validation performance achieved at epoch {final_epoch}.')
                 break
+            
+            if wandb_config is not None:  # W&B 사용 시 로그 기록
+                run.log({
+                    "epoch": epoch,
+                    "train_loss": train_loss[-1],
+                    "valid_loss": valid_loss[-1],
+                    "train_acc": train_scores['acc'],
+                    "valid_acc": valid_scores['acc'],
+                    "train_f1": train_scores['f1_score'],
+                    "valid_f1": valid_scores['f1_score'],
+                })
+            
+        if wandb_config is not None:
+            run.finish()  # 실험 종료 후 마무리
 
         assert best_dict, 'Best state dict was not stored. Please report this issue on Github.'
         self.model.load_state_dict(best_dict)
