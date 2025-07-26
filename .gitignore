@@ -4,12 +4,15 @@
 *.pth
 *.h5
 *.h5ad
+*.err
+*.out
+*.png
 
 # Data folders
 data/
-datasets/
-logs/
-outputs/
+error_and_out/
+wandb/
+figure/
 ckpt/
 
 # Python cache
