@@ -100,7 +100,13 @@ class OmicsFormer(nn.Module):
         if d_iter:
             return self.latent.d_train(x_dict)
         else:
-            if self.head_type is not None:
+            
+            if self.head_type == 'supConLoss':
+                out_dict, supcon_loss = self.head(x_dict)  # SupConHead
+                loss = latent_loss * 0.1 + supcon_loss * 1.0
+                out_dict['latent_loss'] = latent_loss.item() if torch.is_tensor(latent_loss) else latent_loss
+                out_dict['target_loss'] = supcon_loss.item()
+            elif self.head_type is not None:                 
                 out_dict, loss = self.head(x_dict)
                 out_dict['latent_loss'] = latent_loss.item() if torch.is_tensor(latent_loss) else latent_loss
                 out_dict['target_loss'] = loss.item()

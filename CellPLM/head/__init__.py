@@ -1,4 +1,4 @@
-from .downstream import AnnotationHead, DenoisingHead, PerturbationPredictionHead, PatientClassificationHead, EmbedderHead, ImputationHead
+from .downstream import AnnotationHead, DenoisingHead, PerturbationPredictionHead, PatientClassificationHead, EmbedderHead, ImputationHead, SupConLossHead
 # from .spatial import
 from torch import nn
 
@@ -55,6 +55,16 @@ def setup_head(head_type, in_dim, hidden_dim, out_dim, num_layers, dropout, norm
         )
     elif head_type == 'embedder':
         mod = EmbedderHead(
+            in_dim=in_dim,
+            hidden_dim=hidden_dim,
+            out_dim=out_dim,
+            num_layers=num_layers,
+            dropout=dropout,
+            norm=norm,
+            batch_num=batch_num,
+        )
+    elif head_type == 'supConLoss':
+        mod = SupConLossHead(
             in_dim=in_dim,
             hidden_dim=hidden_dim,
             out_dim=out_dim,

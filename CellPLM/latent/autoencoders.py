@@ -113,6 +113,17 @@ class VAELatentLayer(nn.Module):
             kl_loss = 0
         return z, kl_loss
 
+        # if self.training:
+        #     z = mu + sigma * eps
+        #     self.kl_schedule_step()
+        # else:
+        #     z = mu
+
+        # kl_loss = -0.5 * (1 + log_var - mu ** 2 - log_var.exp()).sum(1).mean() * self.kl_weight
+        # if kl_loss < self.lamda:
+        #     kl_loss = 0
+        # return z, kl_loss
+    
 ### Reference: https://github.com/jariasf/GMVAE/blob/master/pytorch/networks/Networks.py ###
 
 class GumbelSoftmax(nn.Module):

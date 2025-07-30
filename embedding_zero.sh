@@ -9,8 +9,10 @@
 #SBATCH --gres=gpu:1                      # GPU 1개 사용
 #SBATCH --cpus-per-task=1               # CPU 4개
 #SBATCH --mem=32G                         # 메모리
-#SBATCH --output=embedding_%j_20250726gse155468_0.out            # 표준 출력 로그 (%j = job ID)
-#SBATCH --error=embedding_%j_20250726gse155468_0.err             # 표준 에러 로그
+#SBATCH --output=logs/cell_embedding/zero_shot/embedding_%j_20250729DLPFC_0.out            # 표준 출력 로그 (%j = job ID)
+#SBATCH --error=logs/cell_embedding/zero_shot/embedding_%j_20250729DLPFC_0.err             # 표준 에러 로그
+
+#
 
 # ✅ 모듈 로드
 module load python/3.10.8--gcc--8.5.0

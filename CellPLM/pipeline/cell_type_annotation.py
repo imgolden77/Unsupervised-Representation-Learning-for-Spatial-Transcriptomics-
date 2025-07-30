@@ -59,6 +59,7 @@ def inference(model, dataloader, split, device, batch_size, eval_dict, label_fie
         order_list = []
         pred = []
         label = []
+        latent =[]#
         for i, data_dict in enumerate(dataloader):
             if not order_required and split and np.sum(data_dict['split'] == split) == 0:
                 continue
@@ -89,19 +90,24 @@ def inference(model, dataloader, split, device, batch_size, eval_dict, label_fie
                 if order_required:
                     order_list.append(input_dict['order_list'])
                 pred.append(out_dict['pred'])
+                latent.append(out_dict['latent'])#
 
         pred = torch.cat(pred)
+        latent = torch.cat(latent)#
         if order_required:
             order = torch.cat(order_list)
             order.scatter_(0, order.clone(), torch.arange(order.shape[0]).to(order.device))
             pred = pred[order]
+            latent = latent[order]#
 
         if len(epoch_loss) == 0:
-            return {'pred': pred}
+            return {'pred': pred,
+                    'latent':latent}
         else:
             scores = downstream_eval('annotation', pred, torch.cat(label),
                                            **eval_dict)
             return {'pred': pred,
+                    'latent':latent,#
                     'loss': sum(epoch_loss)/len(epoch_loss),
                     'metrics': scores}
 
@@ -182,6 +188,11 @@ class CellTypeAnnotationPipeline(Pipeline):
                     input_dict[k] = input_dict[k].to(device)
                 x_dict = XDict(input_dict)
                 out_dict, loss = self.model(x_dict, data_dict['gene_list'])
+                
+                # print("pred:", out_dict['pred'])#
+                # print("label:", out_dict['label'])#
+                # print("num_classes:", self.eval_dict['num_classes'])
+                
                 with torch.no_grad():
                     train_scores.append(
                         downstream_eval('annotation', out_dict['pred'], out_dict['label'], **self.eval_dict))
@@ -255,7 +266,7 @@ class CellTypeAnnotationPipeline(Pipeline):
         dataset = TranscriptomicDataset(adata, None, covariate_fields, order_required=True)
         dataloader = DataLoader(dataset, batch_size=None, shuffle=False, num_workers=config['workers'])
         return inference(self.model, dataloader, None, device,
-                  config['max_eval_batch_size'], self.eval_dict, order_required=True)['pred']
+                  config['max_eval_batch_size'], self.eval_dict, order_required=True) #['pred']
 
     def score(self, adata: ad.AnnData,
               evaluation_config: dict = None,

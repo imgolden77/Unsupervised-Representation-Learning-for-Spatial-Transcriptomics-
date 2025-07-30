@@ -91,6 +91,8 @@ class EmbedderHead(nn.Module):
     def forward(self, x_dict):
         pred = x_dict['h']
         return {'pred': pred, 'latent': x_dict['h']}, torch.tensor(0.).to(x_dict['h'].device)
+        # return {'pred': pred, 'latent': x_dict['h']}, torch.tensor(0., device=x_dict['h'].device, requires_grad=True)#
+
 
 class ImputationHead(nn.Module):
     def __init__(self, in_dim, hidden_dim, out_dim, num_layers, dropout, norm, batch_num, **kwargs):
@@ -161,3 +163,49 @@ def get_normalized_expression(model, seq_list, batch_list, coord_list=None, devi
         exprs = exprs.mean(0)
 
     return exprs
+
+
+class SupConLoss(nn.Module):
+    def __init__(self, temperature=0.07):
+        super().__init__()
+        self.temperature = temperature
+
+    def forward(self, features, labels):
+        device = features.device
+        labels = labels.contiguous().view(-1, 1)
+        mask = torch.eq(labels, labels.T).float().to(device)
+
+        features = F.normalize(features, p=2, dim=1)
+        sim = torch.div(torch.matmul(features, features.T), self.temperature)
+
+        logits_mask = torch.ones_like(mask) - torch.eye(mask.shape[0]).to(device)
+        sim = sim * logits_mask
+
+        exp_sim = torch.exp(sim)
+        log_prob = sim - torch.log(exp_sim.sum(1, keepdim=True) + 1e-10)
+
+        mean_log_prob_pos = (mask * log_prob).sum(1) / (mask.sum(1) + 1e-10)
+        loss = -mean_log_prob_pos.mean()
+        return loss
+    
+class SupConLossHead(nn.Module):
+    def __init__(self, in_dim, hidden_dim, out_dim, num_layers, dropout, **kwargs):
+        super().__init__()
+        self.supcon = SupConLoss(temperature=0.07)
+        layers = [in_dim] + [hidden_dim] * (num_layers - 1) + [out_dim] 
+        dropouts = [dropout] * len(layers)
+        self.mlp = buildNetwork(layers, dropouts)
+
+    def forward(self, x_dict):
+        z = self.mlp(x_dict['h'])  # fine-tuned representation
+        if 'label' in x_dict:
+            supcon_loss = self.supcon(z, x_dict['label'])  # label 포함돼야 함
+            return {'pred': z, 'latent': x_dict['h']}, supcon_loss
+        else:
+            return {'pred': z, 'latent': x_dict['h']}, torch.tensor(0.).to(x_dict['h'].device)
+        
+        
+        
+        
+        
+        

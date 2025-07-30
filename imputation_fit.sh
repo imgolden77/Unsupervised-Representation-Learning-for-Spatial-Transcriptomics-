@@ -9,8 +9,8 @@
 #SBATCH --gres=gpu:1                      # GPU 1개 사용
 #SBATCH --cpus-per-task=1               # CPU 4개
 #SBATCH --mem=32G                         # 메모리
-#SBATCH --output=imputation_fit_%j_20250717DLPFC_ref_sc_ep100.out            # 표준 출력 로그 (%j = job ID)
-#SBATCH --error=imputation_fit_%j_20250717DLPFC_ref_sc_ep100.err             # 표준 에러 로그
+#SBATCH --output=$WORK/logs/imputation/imputation_fit_%j_20250717DLPFC_ref_sc_ep100.out            # 표준 출력 로그 (%j = job ID)
+#SBATCH --error=$WORK/logs/imputation/imputation_fit_%j_20250717DLPFC_ref_sc_ep100.err             # 표준 에러 로그
 
 # ✅ 모듈 로드
 module load python/3.10.8--gcc--8.5.0

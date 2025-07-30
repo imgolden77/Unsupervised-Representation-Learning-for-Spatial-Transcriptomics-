@@ -9,8 +9,8 @@
 #SBATCH --gres=gpu:1                      # GPU 1개 사용
 #SBATCH --cpus-per-task=1               # CPU 4개
 #SBATCH --mem=32G                         # 메모리
-#SBATCH --output=logs/cell_annotation/annotation_%j_20250717DLPFC_pe_gmvae.out            # 표준 출력 로그 (%j = job ID)
-#SBATCH --error=logs/cell_annotation/annotation_%j_20250717DLPFC_pe_gmvae.err             # 표준 에러 로그
+#SBATCH --output=logs/cell_annotation/annotation_emb_%j_20250730GSE151530_Liver.out            # 표준 출력 로그 (%j = job ID)
+#SBATCH --error=logs/cell_annotation/annotation_emb_%j_20250730GSE151530_Liver.err             # 표준 에러 로그
 
 # ✅ 모듈 로드
 module load python/3.10.8--gcc--8.5.0
@@ -27,4 +27,4 @@ cd $WORK/CellPLM  # train.py가 있는 실제 경로로 수정해!
 nvidia-smi
 
 # ✅ Python 코드 실행
-python annotation_fit.py
+python annotation_fit_emb.py

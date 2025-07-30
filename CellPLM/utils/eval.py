@@ -4,6 +4,8 @@ import torch
 import torch.nn.functional as F
 from typing import List
 from torchmetrics.functional.classification import multiclass_f1_score, multiclass_accuracy, multiclass_precision, multiclass_recall 
+from sklearn.metrics.cluster import adjusted_rand_score, normalized_mutual_info_score
+
 
 def aggregate_eval_results(scores: List[dict]):
     scores_new = {}
@@ -15,7 +17,7 @@ def aggregate_eval_results(scores: List[dict]):
     scores = scores_new
     return scores
 
-def downstream_eval(task, pred_labels, true_labels, num_classes=None, eval_mask=None, dim=1, 
+def downstream_eval(task, pred_labels, true_labels, adata=None, embedding_key=None, num_classes=None, eval_mask=None, dim=1, 
                     normalize=True, top_de_dict=None, batch_labels=None, control_level=None,
                     topk=20, **kwargs):
     if task == 'annotation':
@@ -24,6 +26,8 @@ def downstream_eval(task, pred_labels, true_labels, num_classes=None, eval_mask=
         return denoising_eval(pred_labels, true_labels, eval_mask, normalize)
     elif task == 'imputation':
         return imputation_eval(pred_labels, true_labels, dim)
+    elif task == 'clustering':
+        return clustering_eval(adata, true_labels, embedding_key)
     elif task == 'perturbation_prediction':
         raise NotImplementedError("For simplicity, the perturbation evaluation is removed from the current release.")
     else:
@@ -55,25 +59,20 @@ def PearsonCorr1d(y_true, y_pred):
     return pearson
 
 
-def clustering_eval(adata, cluster_key='leiden', label_key='cell_type'):
-    raise NotImplementedError("For simplicity, rapids_singlecell was removed from the dependency. Therefore currently the clustering evaluation is not available.")
-    import rapids_singlecell as rsc
-    from scib.metrics.ari import ari
-    from scib.metrics.nmi import nmi
-    print('Start building knn.')
-    sc.pp.neighbors(adata, use_rep='X_cellbert', method='rapids')
-    best_ari = -1
-    best_nmi = -1
-    for res in range(1, 15, 1):
-        res = res / 10
-        rsc.tl.leiden(adata, resolution=res, key_added=cluster_key)
-        ari_score = ari(adata, cluster_key=cluster_key, label_key=label_key)
-        if ari_score > best_ari:
-            best_ari = ari_score
-        nmi_score = nmi(adata, cluster_key=cluster_key, label_key=label_key)
-        if nmi_score > best_nmi:
-            best_nmi = nmi_score
-    return {'ari': best_ari, 'nmi':best_nmi}
+def clustering_eval(adata, true_labels, embedding_key='emb'):
+    # raise NotImplementedError("For simplicity, rapids_singlecell was removed from the dependency. Therefore currently the clustering evaluation is not available.")
+    # import rapids_singlecell as rsc
+    # from scib.metrics.ari import ari
+    # from scib.metrics.nmi import nmi
+    # print('Start building knn.')
+    sc.pp.neighbors(adata, use_rep=embedding_key)
+    sc.tl.leiden(adata, resolution=1.0, key_added='leiden')
+    # ari = adjusted_rand_score(adata, label_key=label_key)
+    # nmi = normalized_mutual_info_score(adata, label_key=label_key)
+    ari = adjusted_rand_score(adata.obs['leiden'].to_numpy(), true_labels.to_numpy())
+    nmi = normalized_mutual_info_score(adata.obs['leiden'].to_numpy(), true_labels.to_numpy())
+
+    return {'ari':ari, 'nmi':nmi}
 
 def minimum_eval(adata):
     raise NotImplementedError("For simplicity, scib was removed from the dependency. Therefore currently the scib evaluation is not available.")

@@ -20,6 +20,7 @@ set_seed(42)
 
 data = ad.read_h5ad('./data/gse155468_preprocessed.h5ad')
 data.obs_names_make_unique()
+data.obs['batch'] = data.obs['orig.ident'] 
 
 train_num = data.shape[0]
 data.obs['split'] = 'train' #즉, 일단은 모든 데이터를 "test"로 표시
