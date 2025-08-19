@@ -1,16 +1,16 @@
 #!/bin/bash
 
 #SBATCH --job-name=train_gpu
-#SBATCH --partition=boost_usr_prod            # GPU 노드 파티션 (Leonardo 기준) 
+#SBATCH --partition=boost_usr_prod         # GPU 노드 파티션 (Leonardo 기준) boost_usr_prod  
 
 #SBATCH --account=euhpc_b24_014           # ⚠️ 너의 프로젝트 계정
-#SBATCH --time=24:00:00                   # 최대 실행 시간
+#SBATCH --time=06:00:00                   # 최대 실행 시간
 #SBATCH --nodes=1
 #SBATCH --gres=gpu:1                      # GPU 1개 사용
 #SBATCH --cpus-per-task=1               # CPU 4개
 #SBATCH --mem=32G                         # 메모리
-#SBATCH --output=logs/cell_annotation/annotation_fit_emb/annotation_emb_%j_20250806MERFISH_mouseBrainepoch100_set42.out            # 표준 출력 로그 (%j = job ID)
-#SBATCH --error=logs/cell_annotation/annotation_fit_emb/annotation_emb_%j_20250806MERFISH_mouseBrainepoch100_set42.err             # 표준 에러 로그
+#SBATCH --output=logs/imputation/zero_shot/imputation_%j_20250803MERFISH_mouseBrain_0.out            # 표준 출력 로그 (%j = job ID)
+#SBATCH --error=logs/imputation/zero_shot/imputation_%j_20250803MERFISH_mouseBrain_0.err             # 표준 에러 로그
 
 # ✅ 모듈 로드
 module load python/3.10.8--gcc--8.5.0
@@ -27,4 +27,4 @@ cd $WORK/CellPLM  # train.py가 있는 실제 경로로 수정해!
 nvidia-smi
 
 # ✅ Python 코드 실행
-python annotation_fit_emb.py
+python imputation_zeroshot.py

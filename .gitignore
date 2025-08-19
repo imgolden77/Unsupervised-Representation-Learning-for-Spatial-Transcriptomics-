@@ -7,6 +7,7 @@
 *.err
 *.out
 *.png
+*.zip
 
 # Data folders
 data/
@@ -14,6 +15,7 @@ error_and_out/
 wandb/
 figure/
 ckpt/
+logs/
 
 # Python cache
 __pycache__/

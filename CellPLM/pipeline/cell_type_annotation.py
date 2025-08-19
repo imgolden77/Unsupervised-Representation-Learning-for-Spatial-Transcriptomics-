@@ -28,8 +28,8 @@ CellTypeAnnotationDefaultModelConfig = {
 }
 
 CellTypeAnnotationDefaultPipelineConfig = {
-    'es': 200,
-    'lr': 2e-3,
+    'es': 20,
+    'lr': 5e-3,
     'wd': 1e-7,
     'scheduler': 'plat',
     'epochs': 100,

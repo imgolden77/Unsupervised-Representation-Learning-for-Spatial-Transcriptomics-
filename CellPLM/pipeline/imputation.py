@@ -19,6 +19,7 @@ import scipy.sparse
 
 ImputationDefaultModelConfig = {
     'objective': 'imputation',
+    # 'head_type': 'imputation',
     'mask_node_rate': 0.95,
     'mask_feature_rate': 0.25,
     'max_batch_size': 70000,

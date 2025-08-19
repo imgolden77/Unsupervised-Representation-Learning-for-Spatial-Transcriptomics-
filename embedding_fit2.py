@@ -20,41 +20,12 @@ set_seed(42)
 
 data = ad.read_h5ad('./data/gse155468_preprocessed.h5ad')
 data.obs_names_make_unique()
-data.obs['batch'] = data.obs['orig.ident'] 
 
 train_num = data.shape[0]
-data.obs['split'] = 'train' #즉, 일단은 모든 데이터를 "test"로 표시
+data.obs['split'] = 'train' 
 tr = np.random.permutation(train_num) #torch.randperm(train_num).numpy()
 data.obs['split'][tr[int(train_num*0.8):int(train_num*0.9)]] = 'valid'
 data.obs['split'][tr[int(train_num*0.9):]] = 'test'
-
-# CellEmbeddingDefaultModelConfig = {
-#     'head_type': 'embedder',
-#     'mask_node_rate': 0.75,
-#     'mask_feature_rate': 0.25,
-#     'max_batch_size': 70000,
-# }
-
-# CellEmbeddingDefaultPipelineConfig = {
-#     'es': 20,
-#     'lr': 5e-4,
-#     'wd': 1e-6,
-#     'scheduler': 'plat',
-#     'epochs': 100,
-#     'max_eval_batch_size': 100000,
-#     'patience': 5,
-#     'workers': 0,
-# }
-
-# CellEmbeddingWandbConfig = {
-#     "mode":"offline",  # 인터넷 없이 로깅
-#     "entity": "juha95-university-of-manchester",  # 엔티티(팀) 이름
-#     "project": "CellEmbedding",  # 프로젝트 이름
-#     "config": {  # 하이퍼파라미터 정보
-#         **CellEmbeddingDefaultModelConfig,
-#         **CellEmbeddingDefaultPipelineConfig
-#     },
-# }
 
 pipeline_config = CellEmbeddingDefaultPipelineConfig.copy()
 model_config = CellEmbeddingDefaultModelConfig.copy()

@@ -104,6 +104,11 @@ class ImputationHead(nn.Module):
         self.mlp = buildNetwork(layers, dropouts)
 
     def forward(self, x_dict):
+        
+        print("h shape:", x_dict['h'].shape)
+        print("gene_mask shape:", x_dict['gene_mask'].shape)
+        print("type of gene_mask:", type(x_dict['gene_mask']))
+        
         pred = self.mlp(x_dict['h'])[:, x_dict['gene_mask']]
         y = x_dict['label'][:, x_dict['gene_mask']]
         loss = self.mse_loss(pred, y)

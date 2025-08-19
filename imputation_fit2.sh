@@ -9,8 +9,8 @@
 #SBATCH --gres=gpu:1                      # GPU 1개 사용
 #SBATCH --cpus-per-task=1               # CPU 4개
 #SBATCH --mem=32G                         # 메모리
-#SBATCH --output=imputation_0_%j_20250716DLPFC.out            # 표준 출력 로그 (%j = job ID)
-#SBATCH --error=imputation_0_%j_20250716DLPFC.err             # 표준 에러 로그
+#SBATCH --output=logs/imputation/imputation_fit2_%j_20250803LPFC_head_ep100.out            # 표준 출력 로그 (%j = job ID)
+#SBATCH --error=logs/imputation/imputation_fit2_%j_20250803LPFC_head_ep100.err             # 표준 에러 로그
 
 # ✅ 모듈 로드
 module load python/3.10.8--gcc--8.5.0
@@ -27,4 +27,4 @@ cd $WORK/CellPLM  # train.py가 있는 실제 경로로 수정해!
 nvidia-smi
 
 # ✅ Python 코드 실행
-python imputation_zeroshot.py
+python imputation_fit2.py

@@ -24,11 +24,11 @@ CellEmbeddingDefaultModelConfig = {
 }
 
 CellEmbeddingDefaultPipelineConfig = {
-    'es': 20,
+    'es': 30,
     'lr': 5e-4,
     'wd': 1e-6,
     'scheduler': 'plat',
-    'epochs': 10,
+    'epochs': 300,
     'max_eval_batch_size': 100000,
     'patience': 5,
     'workers': 0,
@@ -80,10 +80,12 @@ def inference(model, dataloader, split, device, batch_size, label_fields=None, o
 
                 x_dict = XDict(input_dict)
                 out_dict, loss = model(x_dict, data_dict['gene_list']) #
-                # epoch_loss.append(loss.item()) #
-                if 'label' in input_dict:
-                    epoch_loss.append(loss.item())
-                    label.append(out_dict['label'])
+                epoch_loss.append(loss.item()) #
+
+                # if 'label' in input_dict:
+                #     epoch_loss.append(loss.item())
+                #     label.append(out_dict['label'])
+                
                 if order_required:
                     order_list.append(input_dict['order_list'])
                 pred.append(out_dict['pred'])
@@ -170,47 +172,54 @@ class CellEmbeddingPipeline(Pipeline):
     
         train_loss = []
         valid_loss = []
-        valid_metric = []
         final_epoch = -1
         best_dict = None
+        best_loss = float('inf')
+        patience_counter = 0
     
         for epoch in tqdm(range(config['epochs'])):
             self.model.train()
             epoch_loss = []
-            all_preds = []
+            # all_preds = []
     
             if epoch < 30:
                 for param_group in optim.param_groups[1:]:
                     param_group['lr'] = config['lr'] * (epoch + 1) / 30
     
             for i, data_dict in enumerate(dataloader):
-                print(f"--- batch {i} ---")
-                # split_mask = np.array(data_dict['split']) == train_split  #  
-                # split_idx = torch.nonzero(torch.tensor(split_mask)).squeeze()#
-                # split_idx = torch.nonzero(torch.tensor(split_mask), as_tuple=False).view(-1)#
+                # print(f"--- batch {i} ---")
+                # # Compute index mask for current training split
+                # if split_field:
+                #     split_mask = np.array(data_dict['split']) == train_split
+                #     if split_mask.sum() == 0:
+                #         continue
+                #     split_idx = torch.nonzero(torch.tensor(split_mask), as_tuple=False).view(-1)
+                # else:
+                #     split_idx = torch.arange(data_dict['x_seq'].shape[0])
 
-                if split_field and np.sum(data_dict['split'] == train_split) == 0:
-                # if split_mask.sum() == 0:
-                    continue
-                input_dict = data_dict.copy()
-                del input_dict['gene_list'], input_dict['split']
+                # # Prepare input dict containing only training cells
                 # input_dict = {}
                 # for k, v in data_dict.items():
                 #     if k in ['gene_list', 'split']:
                 #         continue
                 #     input_dict[k] = v.index_select(0, split_idx)
 
-                input_dict['label'] = input_dict[label_fields[0]] # Currently only support annotating one label
-                for k in input_dict:
-                    input_dict[k] = input_dict[k].to(device)
+                # input_dict['label'] = input_dict[label_fields[0]] # Currently only support annotating one label
+                # for k in input_dict:
+                #     input_dict[k] = input_dict[k].to(device)
                 
                 # if 'gene_mask' not in input_dict:
                 #     input_dict['gene_mask'] = torch.arange(input_dict['x_seq'].shape[1]).to(device) ##
+                input_dict = data_dict.copy()
+                del input_dict['gene_list'], input_dict['split']
+                input_dict['label'] = input_dict[label_fields[0]]
+                for k in input_dict:
+                    input_dict[k] = input_dict[k].to(device)
 
                 x_dict = XDict(input_dict)
                 out_dict, loss = self.model(x_dict, data_dict['gene_list'])
 
-                all_preds.append(out_dict['pred'].detach().cpu())
+                # all_preds.append(out_dict['pred'].detach().cpu())
 
                 optim.zero_grad()
                 loss.backward()
@@ -221,13 +230,13 @@ class CellEmbeddingPipeline(Pipeline):
                 if config['scheduler'] == 'plat':
                     scheduler.step(loss.item())
 
-            final_embedding = torch.cat(all_preds, dim=0).numpy()
+            # final_embedding = torch.cat(all_preds, dim=0).cpu().numpy()
             # adata_train = adata.copy()
-            adata_train = adata[adata.obs[split_field] == train_split].copy()
+            # adata_train = adata[adata.obs[split_field] == train_split].copy()
             # adata_train.obsm['emb'] = out_dict['pred'].detach().cpu().numpy()
-            adata_train.obsm['emb'] = final_embedding 
+            # adata_train.obsm['emb'] = final_embedding 
             
-            train_scores= downstream_eval('clustering', pred_labels=None, data=adata_train, true_labels=adata_train.obs[label_fields[0]])
+            # train_scores= downstream_eval('clustering', pred_labels=None, data=adata_train, true_labels=adata_train.obs[label_fields[0]])
 
             train_loss.append(sum(epoch_loss) / len(epoch_loss))
             # if config['scheduler'] == 'plat':
@@ -235,35 +244,40 @@ class CellEmbeddingPipeline(Pipeline):
             # train_scores = aggregate_eval_results(train_scores)
             result_dict = inference(self.model, dataloader, valid_split, device, config['max_eval_batch_size'], label_fields)
             # adata_valid = adata.copy()
-            adata_valid = adata[adata.obs[split_field] == valid_split].copy()
-            adata_valid.obsm['emb'] = inference['pred'].detach().cpu().numpy()
-            valid_scores = downstream_eval('clustering', pred_labels=None, adata=adata_valid, true_labels=adata_valid.obs[label_fields[0]])
+            # adata_valid = adata[adata.obs[split_field] == valid_split].copy()
+            # adata_valid.obsm['emb'] = result_dict['pred'].detach().cpu().numpy()
+            # valid_scores = downstream_eval('clustering', pred_labels=None, adata=adata_valid, true_labels=adata_valid.obs[label_fields[0]])
             
             valid_loss.append(result_dict['loss'])
-            valid_metric.append(valid_scores['ari'])
+            # valid_metric.append(valid_scores['ari'])
 
             print(f'Epoch {epoch} | Train loss: {train_loss[-1]:.4f} | Valid loss: {valid_loss[-1]:.4f}')
-            print(
-                f'Train ARI: {train_scores["ari"]:.4f} | Valid ARI: {valid_scores["ari"]:.4f} | '
-                f'Train NMI: {train_scores["nmi"]:.4f} | Valid NMI: {valid_scores["nmi"]:.4f} | ')
+            # print(
+            #     f'Train ARI: {train_scores["ari"]:.4f} | Valid ARI: {valid_scores["ari"]:.4f} | '
+            #     f'Train NMI: {train_scores["nmi"]:.4f} | Valid NMI: {valid_scores["nmi"]:.4f} | ')
             
-            if max(valid_metric) == valid_metric[-1]:
+            if min(valid_loss) == valid_loss[-1]:
                 best_dict = deepcopy(self.model.state_dict())
                 final_epoch = epoch
 
-            if max(valid_metric) != max(valid_metric[-config['es']:]):
-                print(f'Early stopped. Best validation performance achieved at epoch {final_epoch}.')
-                break
+            # if min(valid_loss) != min(valid_loss[-config['es']:]):
+            #     print(f'Early stopped. Best validation performance achieved at epoch {final_epoch}.')
+            #     break
+
+            if valid_loss[-1] < best_loss:
+                best_loss = valid_loss[-1]
+                patience_counter = 0
+                final_epoch = epoch
+            else:
+                patience_counter += 1
+                if patience_counter >= config['es']:
+                    print(f'Early stopped. Best validation performance achieved at epoch {final_epoch}.')
+                    break
             
             if wandb_config is not None:  # W&B 사용 시 로그 기록
                 run.log({
-                    # "epoch": epoch,
                     "train_loss": train_loss[-1],
-                    "valid_loss": valid_loss[-1],
-                    "train_ari": train_scores['ari'],
-                    "valid_ari": valid_scores['ari'],
-                    "train_nmi": train_scores['nmi'],
-                    "valid_nmi": valid_scores['nmi'],
+                    "valid_loss": valid_loss[-1]
                 })
         if wandb_config is not None:
             run.finish()  # 실험 종료 후 마무리

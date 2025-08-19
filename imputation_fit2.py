@@ -15,12 +15,11 @@ from CellPLM.pipeline.imputation import ImputationPipeline, ImputationDefaultPip
 
 PRETRAIN_VERSION = '20231027_85M'
 DEVICE = 'cuda:0'
-set_seed(11)
-
 
 #===========Single Dataset========
 # DATASET = 'Liver' # 'Lung'
 
+# set_seed(11)
 # if DATASET == 'Lung':
 #     query_dataset = 'HumanLungCancerPatient2_filtered_ensg.h5ad'
 #     ref_dataset = 'GSE131907_Lung_ensg.h5ad'
@@ -33,8 +32,17 @@ set_seed(11)
 #     query_data = ad.read_h5ad(f'./data/{query_dataset}')
 #     ref_data = ad.read_h5ad(f'./data/{ref_dataset}')
 
+# target_genes = stratified_sample_genes_by_sparsity(query_data, seed=11) # This is for reproducing the hold-out gene lists in our paper
+# query_data.obsm['truth'] = query_data[:, target_genes].X.toarray()
+# query_data[:, target_genes].X = 0
+# train_data = query_data.concatenate(ref_data, join='outer', batch_key=None, index_unique=None)
 
-# =============DLPFC data preprocess============
+# train_data.obs['split'] = 'train'
+# train_data.obs['split'][train_data.obs['batch']==query_data.obs['batch'][-1]] = 'valid'
+# train_data.obs['split'][train_data.obs['batch']==ref_data.obs['batch'][-1]] = 'valid'
+
+
+#=============DLPFC data preprocess============
 # 1. Load all 12 samples
 sample_paths = sorted(['./data/sample/sample_1.h5ad',
                        './data/sample/sample_2.h5ad',
@@ -54,16 +62,17 @@ samples = [ad.read_h5ad(p) for p in sample_paths]
 query_data = ad.concat(samples, join='outer', label='sample_id', keys=[f'sample{i+1}' for i in range(12)])
 query_data.obs['layer'] = query_data.obs['layer'].cat.add_categories(['Unknown'])
 query_data.obs['layer'] = query_data.obs['layer'].fillna('Unknown')
-query_data.obs['batch']=query_data.obs['sample_id']
+query_data.obs['batch']= query_data.obs['sample_id']
 query_data.obs['platform'] = 'cosmx'
 query_data.obs['x_FOV_px'] = query_data.obs['x']
 query_data.obs['y_FOV_px'] = query_data.obs['y']
-ref_data = ad.read_h5ad(f'./data/GSE97930_FrontalCortex_ensg.h5ad')
-ref_data.obs_names_make_unique()
-ref_data.X = csr_matrix(ref_data.X)
+
+target_genes = stratified_sample_genes_by_sparsity(query_data, seed=11) # This is for reproducing the hold-out gene lists in our paper
+query_data.obsm['truth'] = query_data[:, target_genes].X.toarray()
+query_data[:, target_genes].X = 0
 
 
-# #=======MERFISH=======
+#=======MERFISH=======
 # sample_paths = sorted(['./data/MERFISH_0.04_ensg.h5ad',
 #                        './data/MERFISH_0.09_ensg.h5ad',
 #                        './data/MERFISH_0.14_ensg.h5ad',
@@ -74,12 +83,8 @@ ref_data.X = csr_matrix(ref_data.X)
 # query_data = ad.concat(samples, join='outer', label='sample_id', keys=[f'sample{i+1}' for i in range(5)])
 
 # query_data.obs['batch'] = query_data.obs['sample_id']  # 핵심 한 줄!
-# ref_data = ad.read_h5ad(f'./data/GSE87544_mouse_brain_ensg.h5ad')
-# ref_data.obs['batch'] = ref_data.obs['SVM_clusterID']
-# ref_data.X = csr_matrix(ref_data.X)
 
-#=====Pipeline set======
-
+#==========Pipeline set=============
 pipeline_config = ImputationDefaultPipelineConfig.copy()
 model_config = ImputationDefaultModelConfig.copy()
 wandb_config =ImputationWandbConfig.copy()
@@ -91,28 +96,26 @@ pipeline = ImputationPipeline(pretrain_prefix=PRETRAIN_VERSION, # Specify the pr
                                       pretrain_directory='./ckpt')
 print(pipeline.model)
 
-#=====Data Preprocess ==========
+#============DLPFC target gene pick===========
 preprocessed = pipeline.common_preprocess(query_data, hvg=0, covariate_fields=None, ensembl_auto_conversion=True)
-
 target_genes = stratified_sample_genes_by_sparsity(preprocessed, seed=11)
 query_data.obsm['truth'] = query_data[:, target_genes].X.toarray()
 query_data[:, target_genes].X = 0
 
-train_data = query_data.concatenate(ref_data, join='outer', batch_key=None, index_unique=None)
-train_data.X.sort_indices()#
+train_adata=query_data
+train_num = train_adata.shape[0]
+train_adata.obs['split'] = 'train' #즉, 일단은 모든 데이터를 "test"로 표시
+tr = np.random.permutation(train_num) #torch.randperm(train_num).numpy()
+train_adata.obs['split'][tr[int(train_num*0.8):int(train_num*0.9)]] = 'valid'
+train_adata.obs['split'][tr[int(train_num*0.9):]] = 'test'
 
-train_data.obs['split'] = 'train'
-train_data.obs['split'][train_data.obs['batch']==query_data.obs['batch'][-1]] = 'valid'
-train_data.obs['split'][train_data.obs['batch']==ref_data.obs['batch'][-1]] = 'valid'
-
+#============Batch gene list formation=============
 query_genes = [g for g in query_data.var.index if g not in target_genes]
 query_batches = list(query_data.obs['batch'].unique())
-ref_batches = list(ref_data.obs['batch'].unique())
-batch_gene_list = dict(zip(list(query_batches) + list(ref_batches),
-    [query_genes]*len(query_batches) + [ref_data.var.index.tolist()]*len(ref_batches)))
+batch_gene_list = dict(zip(list(query_batches), [query_genes]*len(query_batches)))
 
-#======Finetuning============
-pipeline.fit(train_data, # An AnnData object
+#============Fine-tuning====================
+pipeline.fit(train_adata, # An AnnData object
             pipeline_config, # The config dictionary we created previously, optional
             wandb_config= wandb_config,
             split_field = 'split', #  Specify a column in .obs that contains split information
@@ -122,16 +125,20 @@ pipeline.fit(train_data, # An AnnData object
             device = DEVICE,
             )
 
+#============Predict====================
 prediction =pipeline.predict(
-        query_data, # An AnnData object
+        train_adata, # An AnnData object
         pipeline_config, # The config dictionary we created previously, optional
         device = DEVICE,
     )
 print(prediction)
 
+#============Test====================
 score_result=pipeline.score(
-                query_data, # An AnnData object
+                train_adata, # An AnnData object
                 evaluation_config = {'target_genes': target_genes}, # The config dictionary we created previously, optional
+                split_field = 'split',
+                target_split = 'test',
                 label_fields = ['truth'], # A field in .obsm that stores the ground-truth for evaluation
                 device = DEVICE,
 )

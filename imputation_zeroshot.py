@@ -18,37 +18,42 @@ DEVICE = 'cuda:0'
 set_seed(11)
 # DATASET ='Liver'
 
-# 1. Load all 12 samples
-sample_paths = sorted(['./data/sample/sample_1.h5ad',
-                       './data/sample/sample_2.h5ad',
-                       './data/sample/sample_3.h5ad',
-                       './data/sample/sample_4.h5ad',
-                       './data/sample/sample_5.h5ad',
-                       './data/sample/sample_6.h5ad',
-                       './data/sample/sample_7.h5ad',
-                       './data/sample/sample_8.h5ad',
-                       './data/sample/sample_9.h5ad',
-                       './data/sample/sample_10.h5ad',
-                       './data/sample/sample_11.h5ad',
-                       './data/sample/sample_12.h5ad'])  # 12개 h5ad 경로 리스트
+#========DLPFC========
+# # 1. Load all 12 samples
+# sample_paths = sorted(['./data/sample/sample_1.h5ad',
+#                        './data/sample/sample_2.h5ad',
+#                        './data/sample/sample_3.h5ad',
+#                        './data/sample/sample_4.h5ad',
+#                        './data/sample/sample_5.h5ad',
+#                        './data/sample/sample_6.h5ad',
+#                        './data/sample/sample_7.h5ad',
+#                        './data/sample/sample_8.h5ad',
+#                        './data/sample/sample_9.h5ad',
+#                        './data/sample/sample_10.h5ad',
+#                        './data/sample/sample_11.h5ad',
+#                        './data/sample/sample_12.h5ad'])  # 12개 h5ad 경로 리스트
+# samples = [ad.read_h5ad(p) for p in sample_paths]
+
+# # 3. Train 샘플 concat
+# query_data = ad.concat(samples, join='outer', label='sample_id', keys=[f'sample{i+1}' for i in range(12)])
+# query_data.obs['layer'] = query_data.obs['layer'].cat.add_categories(['Unknown'])
+# query_data.obs['layer'] = query_data.obs['layer'].fillna('Unknown')
+# query_data.obs['batch']=query_data.obs['sample_id']
+# query_data.obs['platform'] = 'cosmx'
+# query_data.obs['x_FOV_px'] = query_data.obs['x']
+# query_data.obs['y_FOV_px'] = query_data.obs['y']
+
+#=======MERFISH=======
+sample_paths = sorted(['./data/MERFISH_0.04_ensg.h5ad',
+                       './data/MERFISH_0.09_ensg.h5ad',
+                       './data/MERFISH_0.14_ensg.h5ad',
+                       './data/MERFISH_0.19_ensg.h5ad',
+                       './data/MERFISH_0.24_ensg.h5ad'])
 samples = [ad.read_h5ad(p) for p in sample_paths]
 
-# 3. Train 샘플 concat
-query_data = ad.concat(samples, join='outer', label='sample_id', keys=[f'sample{i+1}' for i in range(12)])
-query_data.obs['layer'] = query_data.obs['layer'].cat.add_categories(['Unknown'])
-query_data.obs['layer'] = query_data.obs['layer'].fillna('Unknown')
-query_data.obs['batch']=query_data.obs['sample_id']
-query_data.obs['platform'] = 'cosmx'
-query_data.obs['x_FOV_px'] = query_data.obs['x']
-query_data.obs['y_FOV_px'] = query_data.obs['y']
+query_data = ad.concat(samples, join='outer', label='sample_id', keys=[f'sample{i+1}' for i in range(5)])
 
-# if DATASET == 'Lung':
-#     query_dataset = 'HumanLungCancerPatient2_filtered_ensg.h5ad'
-#     query_data = ad.read_h5ad(f'./data/{query_dataset}')
-
-# elif DATASET == 'Liver':
-#     query_dataset = 'HumanLiverCancerPatient2_filtered_ensg.h5ad'
-#     query_data = ad.read_h5ad(f'./data/{query_dataset}')
+query_data.obs['batch'] = query_data.obs['sample_id']  # 핵심 한 줄!
 
 # ---- Load pretrained gene list --------------------------------------------
 with open(f'./ckpt/{PRETRAIN_VERSION}.config.json') as f:
