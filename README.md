@@ -1,44 +1,128 @@
-# CellPLM
-This is the official codebase for [CellPLM: Pre-training of Cell Language Model Beyond Single Cells](https://openreview.net/forum?id=BKXvPDekud). **The paper has been accepted by ICLR 2024 conference.** 
+# Unsupervised Representation Learning for Spatial Transcriptomics: Extensions and Evaluation of CellPLM
 
-![Paper](https://img.shields.io/badge/Paper-ICLR24-brightgreen?link=https%3A%2F%2Fopenreview.net%2Fforum%3Fid%3DBKXvPDekud)
-[![License](https://img.shields.io/badge/License-BSD_2--Clause-orange.svg)](https://opensource.org/licenses/BSD-2-Clause)
+A Master of Science Dissertation submitted to The University of Manchester.
 
-***CellPLM*** is the first single-***Cell*** ***P***re-trained ***L***anguage ***M***odel that encodes cell-cell relations and it consistently outperforms existing pre-trained and non-pre-trained models in diverse downstream tasks, with 100x higher inference speed compared to existing pre-trained models. You can also find a brilliant blog about the idea of CellPLM [here](https://portal.valencelabs.com/blogs/post/cellplm-pre-training-of-cell-language-model-beyond-single-cells-wKScCQHIyicpXbx).
+## 🌟 Overview
 
-## Installation
-We recommend PyPI for quick installation. We recommend using `python 3.9` and `cuda>=11.7` but they are adjustable.
+This repository contains the code and resources related to the Master's dissertation, **"Unsupervised representation learning for spatial transcriptomics."** The work focuses on extensively **revisiting, extending, and evaluating** the **CellPLM** (Cell Pre-trained Language Model) foundation model, a Transformer-based architecture designed for single-cell and spatial transcriptomics (ST) data analysis.
 
-### Quick Installation with PyPI
-Make sure gpu version of pytorch (>=1.13.0) has been installed before installing CellPLM.
-```
-pip install cellplm
-```
+The core objective was to deepen the theoretical understanding of CellPLM's components (Cell Language Model, Flowformer, Gaussian Mixture Latent Space) and expand its practical application and scalability for downstream tasks like **cell clustering**, **cell type annotation**, and **ST imputation**.
 
-### Full Installation (recommended for HPC users and developers)
-```
-conda create -n cellplm python=3.9 -y && conda activate cellplm
-conda install cudatoolkit=11.7 -c pytorch -c nvidia
-pip install -r requirements.txt
-```
-The full installation will install the same environment as we used during development. This includes `rapids` used to accelerate evaluation.
+## ✨ Key Project Achievements
 
-## Tutorials
-We offer several [notebooks](https://github.com/OmicsML/CellPLM/tree/main/tutorials) for various downstream tasks as introductory tutorials. _Our latest studies demonstrate CellPLM is competitive on cell-type annotation tasks compared to other SOTA methods and pretrained models. The result table is shown below:_
+The project makes several crucial contributions, particularly in the area of fine-tuning CellPLM for optimal performance and efficiency.
 
-| Method | PBMC12K | Pancreas | HLCA | Immune | Brain | Liver |
-| --- | --- | --- | --- | --- | --- | --- |
-| SingleCellNet | 0.845+-0.0064 | 0.644+-0.0006 | 0.811+-0.0046 | 0.775+-0.0009 | 0.877+-0.0033 | 0.872+-0.0023 |
-| ACTINN | 0.614+-0.0709 | 0.528+-0.0926 | 0.218+-0.0440 | 0.236+-0.0300 | 0.695+-0.0624 | 0.614+-0.0349 |
-| scANVI | 0.930+-0.0148 | 0.963+-0.0083 | 0.708+-0.0183 | 0.851+-0.0133 | 0.933+-0.0010 | **0.908+-0.0144** |
-| CellTypist | 0.883+-0.0055 | 0.882+-0.0011 | 0.776+-0.0079 | 0.822+-0.0020 | 0.901+-0.0031 | 0.764+-0.0132 |
-| scDiff | 0.967+-0.0042 | **0.968+-0.0143** | **0.893+-0.0070** | 0.844+-0.0076 | 0.947+-0.0074 | 0.844+-0.0042 |
-| scGPT | 0.963 | 0.954 | 0.863 | ***0.907*** | **0.950** | 0.864 |
-| Geneformer | ***0.979*** | - | 0.833 | 0.856 | 0.934 | 0.871 |
-| CellPLM | **0.975** | ***0.983*** | ***0.929*** | **0.902** | ***0.967*** | ***0.913*** |
+  * **Novel Clustering Fine-tuning Pipeline:** We designed and implemented a systematic fine-tuning pipeline for cell embedding clustering, comparing Self-supervised, Supervised Contrastive, and Fully Supervised learning strategies.
+  * **Scalable Supervised Contrastive Learning (SupConLoss):** Introduced and validated a supervised contrastive (SupConLoss) head for fine-tuning. This method achieves clustering performance **competitive with Cross-Entropy Loss** while reducing training time by **$30\times$ to $300\times$**. This establishes a highly scalable alternative for large-scale or weakly labeled single-cell datasets.
+  * **Extended Empirical Evaluation:** Conducted extensive experiments on a wide array of scRNA-seq and ST datasets (e.g., Breast Cancer, Aorta, DLPFC Visium, MERFISH mouse brain2) that were not fully covered in the original CellPLM work.
+  * **Codebase Extension:** Publicly-available implementation was extended to support crucial missing functionalities, including:
+    1.  Fine-tuned cell embedding clustering
+    2.  Zero-shot inference for cell type annotation
 
-_(The evaluation follows the setting in [scDiff](https://www.biorxiv.org/content/10.1101/2023.10.13.562243v1.abstract) paper)_
+## 🛠️ Model Architecture Highlights
 
+The core architecture is based on the pre-trained CellPLM model, utilizing the following components:
+
+  * **Cell Language Model:** Extends the gene-centric view by explicitly modeling **cell-to-cell dependencies**, treating cells as tokens to capture biologically crucial intercellular relationships.
+  * **Flowformer Encoder:** Employs **Flowformer**, a variant of the Transformer with $O(nd^2)$ complexity, making it more efficient than standard $O(n^2d)$ attention for the long sequence lengths characteristic of single-cell and ST datasets.
+  * **Gaussian Mixture Latent Space (GMVAE):** Uses a GMVAE prior to better capture the **heterogeneous cell groups** and introduce an inductive bias, generating smoother and more informative cell representations.
+  * **Batch-Aware Decoder:** Incorporates batch-specific embeddings to absorb technical variation, ensuring the latent space remains **biologically meaningful and batch-invariant**.
+
+## 📊 Evaluation Results Summary
+
+| Task | Datasets | Key Finding |
+| :--- | :--- | :--- |
+| **Cell Embedding Clustering** | DLPFC, Mouse Brain2, Breast, Aorta | **CellPLM (Zero-shot)** consistently **outperforms PCA** on all datasets. **SupConLoss** fine-tuning provides a **superior speed-quality trade-off** compared to Cross-Entropy Loss (e.g., $30\times$ to $300\times$ faster training). |
+| **Cell Type Annotation** | DLPFC, Mouse Brain2, Liver/Lung Cancer, Aorta | **Fine-tuning is essential**; zero-shot accuracy is near random. CellPLM demonstrates **strong generalization** on unseen scRNA-seq data (Aorta, Lung, Colorectal cancer) with F1-scores above 0.95. |
+| **ST Imputation** | DLPFC Visium, MERFISH Mouse Brain2 | The utility of scRNA-seq reference data is **context-dependent**. It is beneficial for extremely sparse datasets like MERFISH (155 genes) but provides limited advantage for richer datasets like DLPFC Visium (33,538 genes). |
+
+## 💻 Setup and Installation
+
+The experiments were conducted using the original CellPLM codebase with the extensions implemented in this work.
+
+### Prerequisites
+
+  * A machine with a GPU (NVIDIA A100-SXM 64 GB GPU used for thesis experiments).
+  * Conda package manager.
+
+### Step-by-Step Installation
+
+1.  **Clone the repository:**
+
+    ```bash
+    git clone [Your Repository URL]
+    cd [Your Repository Name]
+    ```
+
+2.  **Create and activate the Conda environment:**
+
+    ```bash
+    conda create -n juhaim_cellplm python=3.9 -y
+    conda activate juhaim_cellplm
+    ```
+
+      * **Note:** The original CellPLM required specific CUDA versions for full functionality. A compatible CUDA toolkit should be installed (e.g., `cudatoolkit=11.7` as per original repo dependencies).
+
+3.  **Install dependencies:**
+
+    ```bash
+    pip install -r requirements.txt
+    ```
+
+### Data Preparation
+
+The datasets used in this work are publicly available and listed in the thesis:
+
+  * **scRNA-seq:** Breast Cancer, Colorectal Cancer, Lung, Liver Cancer, Lung Cancer, Aorta, Frontal Cortex, Mouse Brain.
+  * **ST:** DLPFC Visium (12 samples), MERFISH Mouse Brain2 (5 samples).
+
+The preprocessing functions from the CellPLM framework (`common_preprocess` and `transcriptomics_dataset`) were used to standardize `AnnData` objects and filter the gene list against the pre-trained set.
+
+## 🚀 Running Experiments
+
+Detailed scripts and configuration files for reproducing the main fine-tuning results (SupConLoss vs. Cross-Entropy) are located in the `experiments/` directory.
+
+### 1\. Fine-tuned Cell Embedding Clustering (SupConLoss vs. Cross-Entropy)
+
+To reproduce the key comparison of fine-tuning efficiency and performance on a dataset like Aorta:
+
+  * **Configuration:** Adjust hyperparameters in the relevant configuration file (e.g., `configs/finetune_aorta.yaml`) to set the loss function (`SupConLoss` or `CrossEntropy`).
+  * **Execution:**
+    ```bash
+    # Run with Supervised Contrastive Loss
+    python train_clustering.py --config configs/finetune_aorta_supcon.yaml
+
+    # Run with Cross-Entropy Loss
+    python train_clustering.py --config configs/finetune_aorta_ce.yaml
+    ```
+  * **Metrics:** Clustering metrics (ARI, NMI) and training time will be reported as shown in Table 4 and Table 5 of the thesis.
+
+### 2\. Cell Type Annotation
+
+  * **Configuration:** The best performing setting used an **Autoencoder** as the latent model, with 3,000 highly variable genes (HVGs) and no positional encoding (PE).
+  * **Execution (Example: DLPFC Layer Segmentation):**
+    ```bash
+    python train_annotation.py --config configs/finetune_dlpfc_annotation.yaml
+    ```
+  * **Metrics:** Accuracy and Macro $F_{1}$ scores will be reported.
+
+### 3\. Spatial Transcriptomics Imputation
+
+  * **Execution (Example: DLPFC):**
+    ```bash
+    # Fine-tuning with scRNA-seq reference data
+    python train_imputation.py --config configs/finetune_dlpfc_imputation_w_ref.yaml
+
+    # Zero-shot inference (Pre-trained parameters only)
+    python run_imputation.py --config configs/zeroshot_dlpfc_imputation.yaml
+    ```
+  * **Metrics:** Results include MSE, RMSE, MAE, Pearson's Correlation Coefficient (PCC), and Cosine similarity.
+
+## 🤝 Acknowledgements
+
+This project extends the work of the original CellPLM authors and was completed under the supervision of **Prof. Hongpeng Zhou** and **Haiping Liu**.
+
+-----
 ## Pretrained CellPLM Model Checkpoints
 The checkpoint can be acquired from our [dropbox](https://www.dropbox.com/scl/fo/i5rmxgtqzg7iykt2e9uqm/h?rlkey=o8hi0xads9ol07o48jdityzv1&dl=0). We might update our checkpoints from time to time.
 
