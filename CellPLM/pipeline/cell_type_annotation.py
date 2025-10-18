@@ -28,11 +28,11 @@ CellTypeAnnotationDefaultModelConfig = {
 }
 
 CellTypeAnnotationDefaultPipelineConfig = {
-    'es': 20,
+    'es': 200,
     'lr': 5e-3,
     'wd': 1e-7,
     'scheduler': 'plat',
-    'epochs': 100,
+    'epochs': 2000,
     'max_eval_batch_size': 100000,
     'hvg': 3000,
     'patience': 25,
@@ -40,10 +40,10 @@ CellTypeAnnotationDefaultPipelineConfig = {
 }
 
 CellTypeAnnotationWandbConfig = {
-    "mode":"offline",  # 인터넷 없이 로깅
-    "entity": "juha95-university-of-manchester",  # 엔티티(팀) 이름
-    "project": "test",  # 프로젝트 이름
-    "config": {  # 하이퍼파라미터 정보
+    "mode":"offline",  
+    "entity": "juha95-university-of-manchester",  
+    "project": "annotation",  
+    "config": { 
         **CellTypeAnnotationDefaultModelConfig,
         **CellTypeAnnotationDefaultPipelineConfig
         },

@@ -128,6 +128,7 @@ class CellEmbeddingPipeline(Pipeline):
             sc.pp.neighbors(adata, use_rep='emb')
         best_ari = -1
         best_nmi = -1
+        best_res= None
         for res in range(1, 15, 1):
             res = res / 10
             if 'method' in evaluation_config and evaluation_config['method'] == 'rapids':
@@ -138,10 +139,11 @@ class CellEmbeddingPipeline(Pipeline):
             ari_score = adjusted_rand_score(adata.obs['leiden'].to_numpy(), adata.obs[label_fields[0]].to_numpy())
             if ari_score > best_ari:
                 best_ari = ari_score
+                best_res = res
             nmi_score = normalized_mutual_info_score(adata.obs['leiden'].to_numpy(), adata.obs[label_fields[0]].to_numpy())
             if nmi_score > best_nmi:
                 best_nmi = nmi_score
-        return {'ari': best_ari, 'nmi': best_nmi}
+        return {'ari': best_ari, 'nmi': best_nmi, 'best_resolution': best_res}
 
 
 

@@ -89,7 +89,7 @@ class OmicsEmbeddingLayer(nn.Module):
         x = self.feat_enc(x_dict, input_gene_list)#self.act(self.feat_enc(x_dict, input_gene_list))
         if self.pe_enc is not None:
             pe_input = x_dict[self.pe_enc.pe_key]
-            # pe = self.pe_enc(pe_input) #pe = 0
+            # pe = self.pe_enc(pe_input) 
             pe = 0
             if self.inject_covariate:
                 pe = pe + self.cov_enc(x_dict['batch'])

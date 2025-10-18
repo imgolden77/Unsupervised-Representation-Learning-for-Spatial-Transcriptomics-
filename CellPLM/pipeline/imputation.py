@@ -19,7 +19,6 @@ import scipy.sparse
 
 ImputationDefaultModelConfig = {
     'objective': 'imputation',
-    # 'head_type': 'imputation',
     'mask_node_rate': 0.95,
     'mask_feature_rate': 0.25,
     'max_batch_size': 70000,
@@ -27,20 +26,20 @@ ImputationDefaultModelConfig = {
 
 ImputationDefaultPipelineConfig = {
     'es': 20,
-    'lr': 5e-4,
+    'lr': 5e-3,
     'wd': 1e-6,
     'scheduler': 'plat',
-    'epochs': 100,
+    'epochs': 200,
     'max_eval_batch_size': 100000,
     'patience': 5,
     'workers': 0,
 }
 
 ImputationWandbConfig = {
-    "mode":"offline",  # 인터넷 없이 로깅
-    "entity": "juha95-university-of-manchester",  # 엔티티(팀) 이름
-    "project": "imputation",  # 프로젝트 이름
-    "config": {  # 하이퍼파라미터 정보
+    "mode":"offline",  
+    "entity": "juha95-university-of-manchester",  
+    "project": "imputation",  
+    "config": {  
         **ImputationDefaultModelConfig,
         **ImputationDefaultPipelineConfig
     },
@@ -128,8 +127,8 @@ class ImputationPipeline(Pipeline):
         else:
             scheduler = None
 
-        if wandb_config is not None:  # W&B 설정이 제공된 경우
-            run = wandb.init(**wandb_config)  # 실험 시작
+        if wandb_config is not None:  
+            run = wandb.init(**wandb_config)  
 
         train_loss = []
         valid_loss = []
@@ -176,14 +175,14 @@ class ImputationPipeline(Pipeline):
                 print(f'Early stopped. Best validation performance achieved at epoch {final_epoch}.')
                 break
 
-            if wandb_config is not None:  # W&B 사용 시 로그 기록
+            if wandb_config is not None:  
                 run.log({
                     # "epoch": epoch,
                     "train_loss": train_loss[-1],
                     "valid_loss": valid_loss[-1],
                 })
         if wandb_config is not None:
-            run.finish()  # 실험 종료 후 마무리
+            run.finish() 
             
         assert best_dict, 'Best state dict was not stored. Please report this issue on Github.'
         self.model.load_state_dict(best_dict)
@@ -258,10 +257,7 @@ class ImputationPipeline(Pipeline):
         if split_field and target_split:
             labels = labels[adata.obs[split_field]==target_split]
             pred = pred[adata.obs[split_field]==target_split]
-        # size_factor = 1e4 / (labels.sum(1, keepdims=True) + torch.from_numpy(adata.X.sum(1)).to(pred.device))
-        # size_factor[size_factor.isinf()] == 0
-        # labels = size_factor * labels
-        # pred = size_factor * pred
+
         return imputation_eval(torch.log1p(pred), torch.log1p(labels))
 
 
