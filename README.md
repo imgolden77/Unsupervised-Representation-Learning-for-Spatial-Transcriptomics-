@@ -38,6 +38,7 @@ See `juhaim_thesis_end.pdf` and the `image/` directory for full experimental res
 <p align="center">
   <img src="image/merfish_img.jpg" alt="..." width="800"/>
 </p>
+
 ## Quick start
 
 1) Install dependencies
