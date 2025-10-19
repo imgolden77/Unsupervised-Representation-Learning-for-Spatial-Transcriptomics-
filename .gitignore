@@ -6,7 +6,6 @@
 *.h5ad
 *.err
 *.out
-*.png
 *.zip
 
 # Data folders
