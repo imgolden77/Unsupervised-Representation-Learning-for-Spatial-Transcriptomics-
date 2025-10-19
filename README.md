@@ -36,7 +36,7 @@ See `juhaim_thesis_end.pdf` and the `image/` directory for full experimental res
 </p>
 
 <p align="center">
-  <img src="image/merfish_img.jpg" alt="..." width="800"/>
+  <img src="image/umap_breast_aorta.jpg" alt="..." width="800"/>
 </p>
 
 ## Quick start
